@@ -1,0 +1,19 @@
+.App {
+  text-align: center;
+  padding: 20px;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.ant-typography h1 {
+  margin-bottom: 24px;
+}
+
+.ant-typography p {
+  margin-bottom: 32px;
+  font-size: 16px;
+}

@@ -1,14 +1,14 @@
 import { ConfigProvider } from 'antd';
 import enUS from 'antd/locale/en_US';
 import zhCN from 'antd/locale/zh_CN';
-import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App.tsx';
+import { RouterProvider } from 'react-router-dom';
 import './index.css';
 import { LocaleProvider, useLocale } from './locales/LocaleContext.tsx';
+import router from './router';
 
 // 创建一个包装组件来提供 Ant Design 的本地化支持
-const AppWithAntdLocale: React.FC = () => {
+const AppWithAntdLocale = () => {
   const { locale } = useLocale();
 
   // 根据当前语言选择 Ant Design 的本地化配置
@@ -25,16 +25,14 @@ const AppWithAntdLocale: React.FC = () => {
 
   return (
     <ConfigProvider locale={getAntdLocale()}>
-      <App />
+      <RouterProvider router={router} />
     </ConfigProvider>
   );
 };
 
 ReactDOM.render(
-  <React.StrictMode>
-    <LocaleProvider>
-      <AppWithAntdLocale />
-    </LocaleProvider>
-  </React.StrictMode>,
+  <LocaleProvider>
+    <AppWithAntdLocale />
+  </LocaleProvider>,
   document.getElementById('root')
 );

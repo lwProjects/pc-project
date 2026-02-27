@@ -33,7 +33,9 @@ declare module 'ali-react-table' {
     isStickyHeader?: boolean;
     stickyTop?: number;
     stickyBottom?: number;
-    useVirtual?: boolean | { horizontal?: boolean; vertical?: boolean; header?: boolean };
+    useVirtual?:
+      | boolean
+      | { horizontal?: boolean; vertical?: boolean; header?: boolean };
     estimatedRowHeight?: number;
     virtualDebugLabel?: string;
     footerDataSource?: any[];
@@ -48,7 +50,9 @@ declare module 'ali-react-table' {
     input(input: { dataSource: any[]; columns: ArtColumn[] }): Pipeline;
     primaryKey(key: string | ((record: any) => string)): Pipeline;
     use(feature: any): Pipeline;
-    appendRowPropsGetter(getter: (record: any, rowIndex: number) => any): Pipeline;
+    appendRowPropsGetter(
+      getter: (record: any, rowIndex: number) => any
+    ): Pipeline;
     getProps(): any;
     [key: string]: any;
   }
@@ -67,7 +71,6 @@ declare module 'ali-react-table' {
     export function tips(options: any): any;
     export function autoRowSpan(options: any): any;
     export function rangeSelection(options: any): any;
-    [key: string]: any;
   }
 
   export const proto: any;

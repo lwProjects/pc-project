@@ -2,14 +2,14 @@
  * @Author: liuwei2783 liuwei2783@erayt.com
  * @Date: 2026-02-27 16:25:12
  * @LastEditors: liuwei2783 liuwei2783@erayt.com
- * @LastEditTime: 2026-02-27 17:06:24
+ * @LastEditTime: 2026-02-27 17:49:33
  * @FilePath: \react\src\TableDemo.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import type { ArtColumn } from 'ali-react-table';
 import { Button, Space } from 'antd';
 import { useRef } from 'react';
-import BaseTable, { BaseTableRef } from './component/Table/BaseTable';
+import BaseTable, { BaseTableRef } from '../../component/Table/BaseTable';
 
 interface DataItem {
   id: string;
@@ -54,7 +54,7 @@ const TableDemo = () => {
         <BaseTable
           ref={tableRef}
           columns={columns}
-          dataSource={[]}
+          dataSource={dataSource}
           primaryKey="id"
           selectionType="checkbox"
           striped

@@ -12,4 +12,23 @@ export default {
   'app.modal.content': 'This is the content of the modal',
   'app.modal.okText': 'OK',
   'app.modal.cancelText': 'Cancel',
+
+  // Position Monitoring
+  'position.currencyPair': 'Currency Pair',
+  'position.dealCurrency': 'Deal Currency',
+  'position.dealPort': 'Deal Port',
+  'position.dayDealPort': 'Day Deal Port',
+  'position.dealPortUSD': 'Deal Port (USD)',
+  'position.realizedPL': 'Realized P/L',
+  'position.totalPL': 'Total P/L',
+  'position.marketValue': 'Market Rate',
+  'position.unrealizedPL': 'Cost Rate',
+  'position.mmBook': 'MM BOOK',
+  'position.mmPut': 'MM PUT',
+  'position.longFrozen': 'Long Frozen',
+  'position.shortFrozen': 'Short Frozen',
+  'position.shortVolume': 'Short Volume',
+  'position.longVolume': 'Long Volume',
+  'position.floatingPL': 'Floating P/L',
+  'position.updateTime': 'Update Time',
 };

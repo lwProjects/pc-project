@@ -11,4 +11,23 @@ export default {
   'app.modal.content': '这是模态框的内容',
   'app.modal.okText': '确定',
   'app.modal.cancelText': '取消',
+
+  // 头寸监控
+  'position.currencyPair': '货币对',
+  'position.dealCurrency': '成交货币',
+  'position.dealPort': '成交口',
+  'position.dayDealPort': '日增成交口',
+  'position.dealPortUSD': '成交口(USD)',
+  'position.realizedPL': '已实现损益',
+  'position.totalPL': '总损益',
+  'position.marketValue': '市场汇率',
+  'position.unrealizedPL': '成本汇率',
+  'position.mmBook': 'MM BOOK',
+  'position.mmPut': 'MM PUT',
+  'position.longFrozen': '空头冻结量',
+  'position.shortFrozen': '多头冻结量',
+  'position.shortVolume': '多头交易量',
+  'position.longVolume': '空头交易量',
+  'position.floatingPL': '浮动盈亏',
+  'position.updateTime': '更新时间',
 };

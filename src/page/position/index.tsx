@@ -51,20 +51,24 @@ const Position = () => {
       style={{
         display: 'flex',
         height: '100vh',
-        width: '100%',
+        width: '100vw',
         gap: 8,
         padding: 8,
         background: '#0a1628',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
       }}
     >
       {/* 左侧区域 */}
       <div
         style={{
           width: 200,
+          flexShrink: 0,
           background: '#1d283e',
           borderRadius: 4,
           padding: 16,
           color: '#e9f1f9',
+          overflow: 'auto',
         }}
       >
         <h3 style={{ margin: 0, marginBottom: 16 }}>左侧区域</h3>
@@ -78,12 +82,15 @@ const Position = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: 8,
+          minHeight: 0,
+          minWidth: 0,
         }}
       >
         {/* 中间上部 - 头寸监控 */}
         <div
           style={{
-            flex: 1,
+            height: 'calc(100% - 416px)', // 总高度减去中部和下部的高度(200+200+16间距)
+            minHeight: 300,
             background: '#1d283e',
             borderRadius: 4,
             padding: 16,
@@ -146,6 +153,7 @@ const Position = () => {
         <div
           style={{
             height: 200,
+            minHeight: 200,
             background: '#1d283e',
             borderRadius: 4,
             padding: 16,
@@ -160,6 +168,7 @@ const Position = () => {
         <div
           style={{
             height: 200,
+            minHeight: 200,
             background: '#1d283e',
             borderRadius: 4,
             padding: 16,
@@ -175,10 +184,12 @@ const Position = () => {
       <div
         style={{
           width: 200,
+          flexShrink: 0,
           background: '#1d283e',
           borderRadius: 4,
           padding: 16,
           color: '#e9f1f9',
+          overflow: 'auto',
         }}
       >
         <h3 style={{ margin: 0, marginBottom: 16 }}>右侧区域</h3>

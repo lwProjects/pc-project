@@ -1,8 +1,9 @@
-import { Button, Space } from 'antd';
+import Splitter, { SplitDirection } from '@devbookhq/splitter';
 import { useMemo, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import BaseTable, { BaseTableRef } from '../../component/Table/BaseTable';
 import { getPositionColumns } from './columns';
+import './splitter.css';
 import type { PositionData } from './types';
 
 const Position = () => {
@@ -46,155 +47,73 @@ const Position = () => {
     []
   );
 
+  const panelStyle = {
+    background: '#1d283e',
+    borderRadius: 4,
+    padding: 16,
+    color: '#e9f1f9',
+    height: '100%',
+    overflow: 'auto',
+  };
+
   return (
     <div
       style={{
-        display: 'flex',
         height: '100vh',
         width: '100vw',
-        gap: 8,
-        padding: 8,
         background: '#0a1628',
-        boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      {/* 左侧区域 */}
-      <div
-        style={{
-          width: 200,
-          flexShrink: 0,
-          background: '#1d283e',
-          borderRadius: 4,
-          padding: 16,
-          color: '#e9f1f9',
-          overflow: 'auto',
-        }}
-      >
-        <h3 style={{ margin: 0, marginBottom: 16 }}>左侧区域</h3>
-        <div>暂无</div>
-      </div>
+      <Splitter initialSizes={[15, 70, 15]}>
+        {/* 左侧区域 */}
+        <div style={panelStyle}>
+          <h3 style={{ margin: 0, marginBottom: 16 }}>左侧区域</h3>
+          <div>暂无</div>
+        </div>
 
-      {/* 中间区域 */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          minHeight: 0,
-          minWidth: 0,
-        }}
-      >
-        {/* 中间上部 - 头寸监控 */}
-        <div
-          style={{
-            height: 'calc(100% - 416px)', // 总高度减去中部和下部的高度(200+200+16间距)
-            minHeight: 300,
-            background: '#1d283e',
-            borderRadius: 4,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
+        {/* 中间区域 */}
+        <Splitter
+          direction={SplitDirection.Vertical}
+          initialSizes={[50, 25, 25]}
         >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16,
-            }}
-          >
-            <h3 style={{ margin: 0, color: '#e9f1f9' }}>头寸监控</h3>
-            <Space>
-              <Button
-                size="small"
-                onClick={() => tableRef.current?.selectAll()}
-              >
-                全选
-              </Button>
-              <Button
-                size="small"
-                onClick={() => tableRef.current?.clearSelection()}
-              >
-                清空
-              </Button>
-              <Button
-                size="small"
-                onClick={() => {
-                  const keys = tableRef.current?.getSelectedRowKeys();
-                  const rows = tableRef.current?.getSelectedRows();
-                  console.log('选中的 keys:', keys);
-                  console.log('选中的 rows:', rows);
+          {/* 头寸监控 */}
+          <div style={panelStyle}>
+            <div style={{ height: '100%', overflow: 'hidden' }}>
+              <BaseTable
+                ref={tableRef}
+                columns={columns}
+                dataSource={dataSource}
+                primaryKey="book"
+                selectionType="checkbox"
+                striped
+                useVirtual
+                onSelectionChange={(keys, rows) => {
+                  console.log('选中变化:', keys, rows);
                 }}
-              >
-                获取选中
-              </Button>
-            </Space>
+              />
+            </div>
           </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <BaseTable
-              ref={tableRef}
-              columns={columns}
-              dataSource={dataSource}
-              primaryKey="book"
-              selectionType="checkbox"
-              striped
-              useVirtual
-              onSelectionChange={(keys, rows) => {
-                console.log('选中变化:', keys, rows);
-              }}
-            />
-          </div>
-        </div>
 
-        {/* 中间中部 */}
-        <div
-          style={{
-            height: 200,
-            minHeight: 200,
-            background: '#1d283e',
-            borderRadius: 4,
-            padding: 16,
-            color: '#e9f1f9',
-          }}
-        >
-          <h3 style={{ margin: 0, marginBottom: 16 }}>中间区域</h3>
+          {/* 中间区域 */}
+          <div style={panelStyle}>
+            <h3 style={{ margin: 0, marginBottom: 16 }}>中间区域</h3>
+            <div>暂无</div>
+          </div>
+
+          {/* 下部区域 */}
+          <div style={panelStyle}>
+            <h3 style={{ margin: 0, marginBottom: 16 }}>下部区域</h3>
+            <div>暂无</div>
+          </div>
+        </Splitter>
+
+        {/* 右侧区域 */}
+        <div style={panelStyle}>
+          <h3 style={{ margin: 0, marginBottom: 16 }}>右侧区域</h3>
           <div>暂无</div>
         </div>
-
-        {/* 中间下部 */}
-        <div
-          style={{
-            height: 200,
-            minHeight: 200,
-            background: '#1d283e',
-            borderRadius: 4,
-            padding: 16,
-            color: '#e9f1f9',
-          }}
-        >
-          <h3 style={{ margin: 0, marginBottom: 16 }}>下部区域</h3>
-          <div>暂无</div>
-        </div>
-      </div>
-
-      {/* 右侧区域 */}
-      <div
-        style={{
-          width: 200,
-          flexShrink: 0,
-          background: '#1d283e',
-          borderRadius: 4,
-          padding: 16,
-          color: '#e9f1f9',
-          overflow: 'auto',
-        }}
-      >
-        <h3 style={{ margin: 0, marginBottom: 16 }}>右侧区域</h3>
-        <div>暂无</div>
-      </div>
+      </Splitter>
     </div>
   );
 };

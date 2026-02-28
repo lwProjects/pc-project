@@ -1,0 +1,71 @@
+/* 覆盖 @devbookhq/splitter 的默认样式 */
+
+/* 主容器 */
+.__dbk__container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+.__dbk__container.Horizontal {
+  flex-direction: row;
+}
+
+.__dbk__container.Vertical {
+  flex-direction: column;
+}
+
+/* 子元素包装器 */
+.__dbk__child-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 拖拽手柄 */
+.__dbk__gutter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 10;
+}
+
+.__dbk__gutter.Horizontal {
+  height: 100%;
+  width: 8px;
+  flex-direction: column;
+  cursor: col-resize;
+}
+
+.__dbk__gutter.Vertical {
+  width: 100%;
+  height: 8px;
+  flex-direction: row;
+  cursor: row-resize;
+}
+
+.__dbk__gutter:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 拖拽指示器 */
+.__dbk__dragger {
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.__dbk__dragger.Horizontal {
+  width: 4px;
+  height: 40px;
+}
+
+.__dbk__dragger.Vertical {
+  width: 40px;
+  height: 4px;
+}
+
+.__dbk__gutter:hover > .__dbk__dragger {
+  background: rgba(255, 255, 255, 0.4);
+}

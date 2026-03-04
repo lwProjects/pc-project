@@ -1,20 +1,42 @@
 import Splitter, { SplitDirection } from '@devbookhq/splitter';
 import { Button, Space } from 'antd';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import BaseTable, { BaseTableRef } from '../../component/Table/BaseTable';
 import { getPositionColumns } from './columns';
 import './position.less';
 import './splitter.less';
-import type { PositionData } from './types';
+import type { PositionData, PositionResponse } from './types';
 
 const Position = () => {
   const tableRef = useRef<BaseTableRef>(null);
   const intl = useIntl();
+  const [dataSource, setDataSource] = useState<PositionData[]>([]);
 
   const columns = useMemo(() => getPositionColumns(intl), [intl]);
 
-  const dataSource: PositionData[] = useMemo(
+  // 订阅头寸数据（使用全局 Wui.ws）
+  useEffect(() => {
+    const unsubscribe = Wui.ws.subscribe(
+      'POSIMM.FXSPOT.PAIR',
+      (response: PositionResponse) => {
+        console.log('[Position] 收到头寸数据:', response);
+
+        // 更新数据源
+        if (response?.fxspotPositionList) {
+          setDataSource(response.fxspotPositionList);
+        }
+      }
+    );
+
+    // 组件卸载时取消订阅
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // 模拟数据（用于测试，实际数据来自 WebSocket）
+  const mockDataSource: PositionData[] = useMemo(
     () =>
       Array.from({ length: 50 }, (_, i) => ({
         book: `BOOK${i + 1}`,
@@ -97,7 +119,7 @@ const Position = () => {
               <BaseTable
                 ref={tableRef}
                 columns={columns}
-                dataSource={dataSource}
+                dataSource={dataSource.length > 0 ? dataSource : mockDataSource}
                 primaryKey="book"
                 selectionType="checkbox"
                 striped

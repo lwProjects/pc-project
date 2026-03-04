@@ -40,3 +40,14 @@ declare module '*.bmp' {
   const value: string;
   export default value;
 }
+
+// 全局 Wui 对象声明
+import type { WuiGlobal } from './utils/globalInit';
+
+declare global {
+  const Wui: WuiGlobal;
+
+  interface Window {
+    Wui: WuiGlobal;
+  }
+}

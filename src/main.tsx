@@ -6,6 +6,10 @@ import { RouterProvider } from 'react-router-dom';
 import './index.css';
 import { LocaleProvider, useLocale } from './locales/LocaleContext.tsx';
 import router from './router';
+import { initGlobal } from './utils/globalInit';
+
+// 初始化全局对象（包括 WebSocket）
+initGlobal();
 
 // 创建一个包装组件来提供 Ant Design 的本地化支持
 const AppWithAntdLocale = () => {

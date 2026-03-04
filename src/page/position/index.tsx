@@ -18,7 +18,8 @@ const Position = () => {
   // 订阅头寸数据（使用全局 Wui.ws）
   useEffect(() => {
     const unsubscribe = Wui.ws.subscribe(
-      'POSIMM.FXSPOT.PAIR',
+      'position-menu',
+      ['POSIMM.FXSPOT.PAIR'],
       (response: PositionResponse) => {
         console.log('[Position] 收到头寸数据:', response);
 

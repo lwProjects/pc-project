@@ -33,11 +33,12 @@ export interface WuiGlobal {
     init: (url: string) => void;
     /** 订阅消息（支持泛型） */
     subscribe: <T = unknown>(
-      title: string,
+      menuId: string,
+      titles: string[],
       callback: MessageCallback<T>
     ) => () => void;
     /** 取消订阅 */
-    unsubscribe: (title: string, callback?: MessageCallback<unknown>) => void;
+    unsubscribe: (menuId: string, callback?: MessageCallback<unknown>) => void;
     /** 获取 WebSocket 信息 */
     getInfo: () => WebSocketInfo;
     /** 断开连接 */
@@ -74,11 +75,15 @@ export function initGlobal(): void {
         wsManager.init({ url });
         console.log('[Wui] WebSocket 初始化完成');
       },
-      subscribe: <T = unknown>(title: string, callback: MessageCallback<T>) => {
-        return wsManager.subscribe<T>(title, callback);
+      subscribe: <T = unknown>(
+        menuId: string,
+        titles: string[],
+        callback: MessageCallback<T>
+      ) => {
+        return wsManager.subscribe<T>(menuId, titles, callback);
       },
-      unsubscribe: (title: string, callback?: MessageCallback<unknown>) => {
-        wsManager.unsubscribe(title, callback);
+      unsubscribe: (menuId: string, callback?: MessageCallback<unknown>) => {
+        wsManager.unsubscribe(menuId, callback);
       },
       getInfo: () => {
         return wsManager.getInfo();
@@ -104,7 +109,7 @@ export function initGlobal(): void {
   console.log('[Wui] 使用方式:');
   console.log('  - Wui.initConfig.ws_url // 访问配置');
   console.log(
-    '  - Wui.ws.subscribe("FXSPOT.COM.ORDER", (data) => console.log(data))'
+    '  - Wui.ws.subscribe("menu-id", ["TITLE1", "TITLE2"], (data) => console.log(data))'
   );
   console.log('  - Wui.ws.getInfo()');
 }

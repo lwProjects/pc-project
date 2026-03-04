@@ -24,6 +24,7 @@
     "react-router-dom": "^6.20.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
     "@types/react": "^17.0.62",
     "@types/react-dom": "^17.0.25",
     "@types/react-grid-layout": "^2.1.0",

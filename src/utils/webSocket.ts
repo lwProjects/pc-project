@@ -99,8 +99,11 @@ class WebSocketManager {
   /** 当前连接状态 */
   private status: WSStatus = WSStatus.DISCONNECTED;
 
-  /** 订阅映射表：title -> 回调函数数组 */
-  private subscriptions: Map<string, MessageCallback<unknown>[]> = new Map();
+  /** 订阅映射表：title -> { menuId -> { callback } } */
+  private subscriptions: Map<
+    string,
+    Record<string, { callback: MessageCallback<unknown> }>
+  > = new Map();
 
   /** 当前重连次数 */
   private reconnectAttempts: number = 0;
@@ -113,6 +116,9 @@ class WebSocketManager {
 
   /** 最后一次错误信息 */
   private lastError: string | null = null;
+
+  /** 已向服务器注册的 title 集合 */
+  private registeredTitles: Set<string> = new Set();
 
   /**
    * 初始化 WebSocket 连接
@@ -353,7 +359,7 @@ class WebSocketManager {
     this.heartbeatTimer = setInterval(() => {
       // 只在连接打开时发送心跳
       if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send({ type: 'ping' });
+        this.send('ping');
       }
     }, this.config.heartbeatInterval);
   }
@@ -375,54 +381,121 @@ class WebSocketManager {
   /**
    * 发送消息（私有方法）
    *
-   * 向服务器发送 JSON 格式的消息
+   * 向服务器发送消息
    * 只在连接打开状态下才能发送
    *
    * @private
-   * @param {any} data - 要发送的数据对象
+   * @param {string} data - 要发送的数据字符串
    */
-  private send(data: Record<string, unknown>): void {
+  private send(data: string): void {
     // 检查连接状态
     if (this.ws?.readyState === WebSocket.OPEN) {
-      // 将数据转为 JSON 字符串并发送
-      this.ws.send(JSON.stringify(data));
+      // 发送消息
+      this.ws.send(data);
+      console.log(`[WebSocket] 发送消息: ${data}`);
     } else {
       console.warn('[WebSocket] 连接未就绪，无法发送消息');
     }
   }
 
   /**
+   * 向服务器注册 title（私有方法）
+   *
+   * 发送 #Atitle1/title2/... 格式的消息到服务器
+   *
+   * @private
+   * @param {string[]} titles - 要注册的 title 数组
+   */
+  private registerTitles(titles: string[]): void {
+    if (titles.length === 0) return;
+
+    // 过滤出未注册的 title
+    const newTitles = titles.filter(title => !this.registeredTitles.has(title));
+
+    if (newTitles.length === 0) {
+      console.log('[WebSocket] 所有 title 已注册，跳过');
+      return;
+    }
+
+    // 构建注册消息：#Atitle1/title2/...
+    const message = `#A${newTitles.join('/')}`;
+    this.send(message);
+
+    // 记录已注册的 title
+    newTitles.forEach(title => this.registeredTitles.add(title));
+
+    console.log(`[WebSocket] 向服务器注册 title: ${newTitles.join(', ')}`);
+  }
+
+  /**
+   * 向服务器取消注册 title（私有方法）
+   *
+   * 发送 #Dtitle1/title2/... 格式的消息到服务器
+   *
+   * @private
+   * @param {string[]} titles - 要取消注册的 title 数组
+   */
+  private unregisterTitles(titles: string[]): void {
+    if (titles.length === 0) return;
+
+    // 过滤出已注册的 title
+    const registeredTitles = titles.filter(title =>
+      this.registeredTitles.has(title)
+    );
+
+    if (registeredTitles.length === 0) {
+      console.log('[WebSocket] 没有需要取消注册的 title');
+      return;
+    }
+
+    // 构建取消注册消息：#Dtitle1/title2/...
+    const message = `#D${registeredTitles.join('/')}`;
+    this.send(message);
+
+    // 从已注册集合中移除
+    registeredTitles.forEach(title => this.registeredTitles.delete(title));
+
+    console.log(
+      `[WebSocket] 向服务器取消注册 title: ${registeredTitles.join(', ')}`
+    );
+  }
+
+  /**
    * 分发消息到订阅者（私有方法）
    *
    * 根据 title 查找对应的订阅者，并执行所有回调函数
-   * 支持多个页面/组件同时订阅同一个 title
+   * 使用对象映射，直接通过 menuId 访问 callback，性能更优
    *
    * @private
    * @param {string} title - 消息标题
-   * @param {any} data - 消息数据
+   * @param {unknown} data - 消息数据
    */
   private dispatch(title: string, data: unknown): void {
-    // 获取该 title 的所有回调函数
-    const callbacks = this.subscriptions.get(title);
+    // 获取该 title 的所有订阅者（对象映射）
+    const menuCallbacks = this.subscriptions.get(title);
 
     // 检查是否有订阅者
-    if (!callbacks || callbacks.length === 0) {
+    if (!menuCallbacks || Object.keys(menuCallbacks).length === 0) {
       console.warn(`[WebSocket] 没有订阅者监听 title: ${title}`);
       return;
     }
 
+    const subscriberCount = Object.keys(menuCallbacks).length;
     console.log(
-      `[WebSocket] 分发消息到 ${callbacks.length} 个订阅者, title: ${title}`
+      `[WebSocket] 分发消息到 ${subscriberCount} 个订阅者, title: ${title}`
     );
 
-    // 遍历执行所有回调函数
-    callbacks.forEach(callback => {
+    // 遍历对象，执行所有回调函数
+    Object.entries(menuCallbacks).forEach(([menuId, item]) => {
       try {
         // 执行回调，传入消息数据
-        callback(data);
+        item.callback(data);
       } catch (error) {
         // 捕获回调执行错误，避免影响其他订阅者
-        console.error(`[WebSocket] 回调执行失败, title: ${title}`, error);
+        console.error(
+          `[WebSocket] 回调执行失败, title: ${title}, menuId: ${menuId}`,
+          error
+        );
       }
     });
   }
@@ -430,100 +503,137 @@ class WebSocketManager {
   /**
    * 注册订阅（公共方法）
    *
-   * 订阅指定 title 的消息，当服务器推送该 title 的消息时会触发回调
-   * 支持多个页面/组件同时订阅同一个 title
+   * 根据菜单ID订阅多个 title 的消息
+   * 使用对象映射存储：title -> { menuId -> { callback } }
    *
    * @public
-   * @param {string} title - 订阅标题（如：FXSPOT.COM.ORDER）
-   * @param {MessageCallback} callback - 消息回调函数
-   * @returns {Function} 取消订阅函数，调用即可取消订阅
+   * @param {string} menuId - 菜单ID，用于标识订阅来源
+   * @param {string[]} titles - 订阅标题数组
+   * @param {MessageCallback<T>} callback - 消息回调函数
+   * @returns {Function} 取消订阅函数，调用即可取消该菜单的所有订阅
    *
    * @example
-   * // 订阅订单消息
-   * const unsubscribe = wsManager.subscribe('FXSPOT.COM.ORDER', (data) => {
-   *   console.log('收到订单消息:', data);
+   * // 订阅头寸消息
+   * const unsubscribe = wsManager.subscribe('position-menu', ['POSIMM.FXSPOT.PAIR'], (data) => {
+   *   console.log('收到头寸消息:', data);
    * });
    *
    * // 取消订阅
    * unsubscribe();
    */
   subscribe<T = unknown>(
-    title: string,
+    menuId: string,
+    titles: string[],
     callback: MessageCallback<T>
   ): () => void {
     // 参数校验
-    if (!title || typeof callback !== 'function') {
+    if (
+      !menuId ||
+      !Array.isArray(titles) ||
+      titles.length === 0 ||
+      typeof callback !== 'function'
+    ) {
       console.error('[WebSocket] 订阅参数无效');
       return () => {};
     }
 
-    // 获取该 title 的回调列表
-    let callbacks = this.subscriptions.get(title);
+    // 收集需要首次注册的 title
+    const titlesToRegister: string[] = [];
 
-    // 如果不存在，创建新的回调列表
-    if (!callbacks) {
-      callbacks = [];
-      this.subscriptions.set(title, callbacks);
+    // 为每个 title 添加回调
+    titles.forEach(title => {
+      // 获取该 title 的订阅对象
+      let menuCallbacks = this.subscriptions.get(title);
+
+      // 判断是否是首次订阅该 title
+      const isFirstSubscription =
+        !menuCallbacks || Object.keys(menuCallbacks).length === 0;
+
+      // 如果不存在，创建新的订阅对象
+      if (!menuCallbacks) {
+        menuCallbacks = {};
+        this.subscriptions.set(title, menuCallbacks);
+      }
+
+      // 添加回调到对象（使用 menuId 作为 key）
+      menuCallbacks[menuId] = {
+        callback: callback as MessageCallback<unknown>,
+      };
+
+      // 如果是首次订阅，加入待注册列表
+      if (isFirstSubscription) {
+        titlesToRegister.push(title);
+      }
+
+      console.log(
+        `[WebSocket] 订阅成功, menuId: ${menuId}, title: ${title}, 当前订阅数: ${Object.keys(menuCallbacks).length}`
+      );
+    });
+
+    // 批量向服务器注册新的 title
+    if (titlesToRegister.length > 0) {
+      this.registerTitles(titlesToRegister);
     }
 
-    // 添加回调到列表（类型断言为 unknown）
-    callbacks.push(callback as MessageCallback<unknown>);
-
-    console.log(
-      `[WebSocket] 订阅成功, title: ${title}, 当前订阅数: ${callbacks.length}`
-    );
-
     // 返回取消订阅函数（闭包）
-    return () => this.unsubscribe(title, callback as MessageCallback<unknown>);
+    return () => this.unsubscribe(menuId, titles);
   }
 
   /**
    * 取消订阅（公共方法）
    *
-   * 取消指定 title 的订阅
-   * 如果不传 callback，则取消该 title 的所有订阅
-   * 如果传了 callback，则只取消该回调函数的订阅
+   * 取消指定菜单ID的指定 title 订阅
    *
    * @public
-   * @param {string} title - 订阅标题
-   * @param {MessageCallback} [callback] - 可选，指定要取消的回调函数
+   * @param {string} menuId - 菜单ID
+   * @param {string[]} titles - 要取消订阅的 title 数组
    *
    * @example
-   * // 取消指定回调
-   * wsManager.unsubscribe('FXSPOT.COM.ORDER', myCallback);
-   *
-   * // 取消该 title 的所有订阅
-   * wsManager.unsubscribe('FXSPOT.COM.ORDER');
+   * // 取消指定菜单的订阅
+   * wsManager.unsubscribe('position-menu', ['POSIMM.FXSPOT.PAIR']);
    */
-  unsubscribe(title: string, callback?: MessageCallback<unknown>): void {
-    // 获取该 title 的回调列表
-    const callbacks = this.subscriptions.get(title);
-
-    // 检查是否存在订阅
-    if (!callbacks) {
-      console.warn(`[WebSocket] 未找到订阅, title: ${title}`);
+  unsubscribe(menuId: string, titles: string[]): void {
+    // 参数校验
+    if (!menuId || !Array.isArray(titles) || titles.length === 0) {
+      console.warn(`[WebSocket] 取消订阅参数无效, menuId: ${menuId}`);
       return;
     }
 
-    if (callback) {
-      // 移除指定回调
-      const index = callbacks.indexOf(callback);
-      if (index > -1) {
-        callbacks.splice(index, 1);
+    // 收集需要取消注册的 title
+    const titlesToUnregister: string[] = [];
+
+    // 从每个 title 的订阅对象中移除该 menuId
+    titles.forEach(title => {
+      const menuCallbacks = this.subscriptions.get(title);
+
+      if (!menuCallbacks) {
+        console.warn(`[WebSocket] 未找到订阅, title: ${title}`);
+        return;
+      }
+
+      // 删除该 menuId 的回调
+      if (menuCallbacks[menuId]) {
+        delete menuCallbacks[menuId];
         console.log(
-          `[WebSocket] 取消订阅成功, title: ${title}, 剩余订阅数: ${callbacks.length}`
+          `[WebSocket] 取消订阅成功, menuId: ${menuId}, title: ${title}, 剩余订阅数: ${Object.keys(menuCallbacks).length}`
         );
       }
 
-      // 如果没有回调了，删除该 title
-      if (callbacks.length === 0) {
+      // 如果没有订阅者了，删除该 title 并加入待取消注册列表
+      if (Object.keys(menuCallbacks).length === 0) {
         this.subscriptions.delete(title);
+        titlesToUnregister.push(title);
       }
-    } else {
-      // 取消该 title 的所有订阅
-      this.subscriptions.delete(title);
-      console.log(`[WebSocket] 取消所有订阅, title: ${title}`);
+    });
+
+    // 批量向服务器取消注册
+    if (titlesToUnregister.length > 0) {
+      this.unregisterTitles(titlesToUnregister);
     }
+
+    console.log(
+      `[WebSocket] 取消菜单订阅, menuId: ${menuId}, titles: ${titles.join(', ')}`
+    );
   }
 
   /**
@@ -546,8 +656,8 @@ class WebSocketManager {
     const subscriptions: Record<string, number> = {};
 
     // 遍历所有订阅，统计每个 title 的订阅数量
-    this.subscriptions.forEach((callbacks, title) => {
-      subscriptions[title] = callbacks.length;
+    this.subscriptions.forEach((menuCallbacks, title) => {
+      subscriptions[title] = Object.keys(menuCallbacks).length;
     });
 
     // 返回完整信息

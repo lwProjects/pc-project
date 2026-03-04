@@ -4,6 +4,26 @@
 
 中央广播式 WebSocket 管理器，支持多页面订阅、自动重连、消息分发。
 
+## 系统架构
+
+### 服务器通信协议
+
+WebSocket 管理器与服务器采用以下通信协议：
+
+1. **注册订阅**: 当首次订阅某个 title 时，向服务器发送 `#Atitle1/title2/...`
+2. **取消订阅**: 当某个 title 的所有订阅都被取消时，向服务器发送 `#Dtitle1/title2/...`
+3. **消息推送**: 服务器推送消息格式为 `{"title": "xxx", "data": {...}}`
+4. **心跳保持**: 定期发送 `ping` 消息保持连接
+
+### 订阅机制
+
+- 每个菜单可以订阅多个 title
+- 同一个 title 可以被多个菜单订阅
+- 只有首次订阅某个 title 时才向服务器注册
+- 只有最后一个订阅被取消时才向服务器取消注册
+- 已注册的 title 会被缓存，避免重复注册
+- 菜单ID用于管理和追踪订阅关系
+
 ## 系统初始化
 
 WebSocket 连接在应用启动时通过 `globalInit` 自动初始化（`src/main.tsx`）：
@@ -37,8 +57,10 @@ const MyComponent = () => {
 
   useEffect(() => {
     // 使用全局 Wui.ws 订阅消息
-    const unsubscribe = window.Wui.ws.subscribe<MyDataType>(
-      'MY.TOPIC',
+    // 参数：菜单ID, title数组, 回调函数
+    const unsubscribe = Wui.ws.subscribe<MyDataType>(
+      'my-menu-id',
+      ['MY.TOPIC.1', 'MY.TOPIC.2'],
       (newData) => {
         console.log('收到消息:', newData);
         setData(newData);
@@ -60,8 +82,9 @@ const MyComponent = () => {
 ```typescript
 // src/page/position/index.tsx
 useEffect(() => {
-  const unsubscribe = window.Wui.ws.subscribe<PositionResponse>(
-    'POSIMM.FXSPOT.PAIR',
+  const unsubscribe = Wui.ws.subscribe<PositionResponse>(
+    'position-menu',
+    ['POSIMM.FXSPOT.PAIR'],
     response => {
       if (response?.fxspotPositionList) {
         setDataSource(response.fxspotPositionList);
@@ -82,7 +105,7 @@ useEffect(() => {
 ### 1. 访问配置
 
 ```typescript
-window.Wui.initConfig: InitConfig
+Wui.initConfig: InitConfig
 ```
 
 **属性：**
@@ -92,7 +115,7 @@ window.Wui.initConfig: InitConfig
 **示例：**
 
 ```typescript
-console.log('WebSocket 地址:', window.Wui.initConfig.ws_url);
+console.log('WebSocket 地址:', Wui.initConfig.ws_url);
 ```
 
 ---
@@ -100,12 +123,13 @@ console.log('WebSocket 地址:', window.Wui.initConfig.ws_url);
 ### 2. 订阅消息
 
 ```typescript
-window.Wui.ws.subscribe<T>(title: string, callback: (data: T) => void): () => void
+Wui.ws.subscribe<T>(menuId: string, titles: string[], callback: (data: T) => void): () => void
 ```
 
 **参数：**
 
-- `title`: 订阅标题（如：`POSIMM.FXSPOT.PAIR`）
+- `menuId`: 菜单ID，用于标识订阅来源
+- `titles`: 订阅标题数组（如：`['POSIMM.FXSPOT.PAIR', 'OTHER.TITLE']`）
 - `callback`: 消息回调函数
 
 **返回：**
@@ -116,10 +140,20 @@ window.Wui.ws.subscribe<T>(title: string, callback: (data: T) => void): () => vo
 
 ```typescript
 // 订阅头寸消息
-const unsubscribe = window.Wui.ws.subscribe<PositionResponse>(
-  'POSIMM.FXSPOT.PAIR',
+const unsubscribe = Wui.ws.subscribe<PositionResponse>(
+  'position-menu',
+  ['POSIMM.FXSPOT.PAIR'],
   data => {
     console.log('收到头寸消息:', data);
+  }
+);
+
+// 订阅多个 title
+const unsubscribe2 = Wui.ws.subscribe(
+  'multi-menu',
+  ['TITLE1', 'TITLE2', 'TITLE3'],
+  data => {
+    console.log('收到消息:', data);
   }
 );
 
@@ -132,22 +166,19 @@ unsubscribe();
 ### 3. 取消订阅
 
 ```typescript
-window.Wui.ws.unsubscribe(title: string, callback?: (data: unknown) => void): void
+Wui.ws.unsubscribe(menuId: string, callback?: (data: unknown) => void): void
 ```
 
 **参数：**
 
-- `title`: 订阅标题
-- `callback`: 可选，指定要取消的回调函数。不传则取消该 title 的所有订阅
+- `menuId`: 菜单ID
+- `callback`: 可选，指定要取消的回调函数
 
 **示例：**
 
 ```typescript
-// 取消指定回调
-window.Wui.ws.unsubscribe('POSIMM.FXSPOT.PAIR', myCallback);
-
-// 取消该 title 的所有订阅
-window.Wui.ws.unsubscribe('POSIMM.FXSPOT.PAIR');
+// 取消指定菜单的订阅
+Wui.ws.unsubscribe('position-menu', myCallback);
 ```
 
 ---
@@ -155,7 +186,7 @@ window.Wui.ws.unsubscribe('POSIMM.FXSPOT.PAIR');
 ### 4. 获取 WebSocket 信息
 
 ```typescript
-window.Wui.ws.getInfo(): WebSocketInfo
+Wui.ws.getInfo(): WebSocketInfo
 ```
 
 **返回：**
@@ -173,7 +204,7 @@ window.Wui.ws.getInfo(): WebSocketInfo
 **示例：**
 
 ```typescript
-const info = window.Wui.ws.getInfo();
+const info = Wui.ws.getInfo();
 console.log('WebSocket 信息:', info);
 ```
 
@@ -182,13 +213,13 @@ console.log('WebSocket 信息:', info);
 ### 5. 断开连接
 
 ```typescript
-window.Wui.ws.disconnect(): void
+Wui.ws.disconnect(): void
 ```
 
 **示例：**
 
 ```typescript
-window.Wui.ws.disconnect();
+Wui.ws.disconnect();
 ```
 
 ---
@@ -196,13 +227,13 @@ window.Wui.ws.disconnect();
 ### 6. 重新连接
 
 ```typescript
-window.Wui.ws.reconnect(): void
+Wui.ws.reconnect(): void
 ```
 
 **示例：**
 
 ```typescript
-window.Wui.ws.reconnect();
+Wui.ws.reconnect();
 ```
 
 ---
@@ -219,8 +250,9 @@ export default function OrderPage() {
 
   useEffect(() => {
     // 订阅订单消息
-    const unsubscribe = window.Wui.ws.subscribe<OrderData[]>(
-      'FXSPOT.COM.ORDER',
+    const unsubscribe = Wui.ws.subscribe<OrderData[]>(
+      'order-menu',
+      ['FXSPOT.COM.ORDER'],
       (data) => {
         console.log('收到订单更新:', data);
         setOrders(data);
@@ -244,7 +276,7 @@ export default function OrderPage() {
 ```typescript
 // 页面 A
 useEffect(() => {
-  const unsubscribe = window.Wui.ws.subscribe('FXSPOT.COM.ORDER', data => {
+  const unsubscribe = Wui.ws.subscribe('menu-a', ['FXSPOT.COM.ORDER'], data => {
     console.log('页面 A 收到消息:', data);
   });
   return () => unsubscribe();
@@ -252,7 +284,7 @@ useEffect(() => {
 
 // 页面 B
 useEffect(() => {
-  const unsubscribe = window.Wui.ws.subscribe('FXSPOT.COM.ORDER', data => {
+  const unsubscribe = Wui.ws.subscribe('menu-b', ['FXSPOT.COM.ORDER'], data => {
     console.log('页面 B 收到消息:', data);
   });
   return () => unsubscribe();
@@ -267,18 +299,18 @@ useEffect(() => {
 
 ```typescript
 // 查看配置
-window.Wui.initConfig;
+Wui.initConfig;
 
 // 查看连接信息
-window.Wui.ws.getInfo();
+Wui.ws.getInfo();
 
 // 订阅消息
-window.Wui.ws.subscribe('FXSPOT.COM.ORDER', data => {
+Wui.ws.subscribe('debug-menu', ['FXSPOT.COM.ORDER'], data => {
   console.log('控制台收到消息:', data);
 });
 
 // 查看当前订阅
-window.Wui.ws.getInfo().subscriptions;
+Wui.ws.getInfo().subscriptions;
 ```
 
 ---
@@ -299,13 +331,36 @@ window.Wui.ws.getInfo().subscriptions;
 
 ## 消息格式
 
-服务器推送的消息需要符合以下格式：
+### 客户端到服务器
+
+1. **注册订阅**:
+
+```
+#APOSIMM.FXSPOT.PAIR/OTHER.TITLE
+```
+
+2. **取消订阅**:
+
+```
+#DPOSIMM.FXSPOT.PAIR/OTHER.TITLE
+```
+
+3. **心跳**:
+
+```
+ping
+```
+
+### 服务器到客户端
+
+服务器推送的消息必须包含 `title` 字段：
 
 ```json
 {
   "title": "POSIMM.FXSPOT.PAIR",
   "data": {
-    // 业务数据
+    "fxspotPositionList": [...],
+    "positionCollection": {...}
   }
 }
 ```
@@ -334,11 +389,42 @@ enum WSStatus {
 1. **全局访问**: 通过 `window.Wui` 全局访问，方便在任何地方使用
 2. **配置文件**: 使用 `init.json` 配置，易于管理和修改
 3. **系统级初始化**: 应用启动时自动连接，无需在组件中初始化
-4. **自动重连**: 连接断开后自动重连，默认最多重连 10 次
-5. **心跳检测**: 每 30 秒发送一次心跳，保持连接活跃
-6. **多订阅支持**: 同一个 title 可以在不同页面同时订阅
-7. **消息分发**: 根据 title 自动分发消息到对应的订阅者
-8. **类型安全**: 支持 TypeScript 泛型，提供完整的类型提示
+4. **菜单级订阅**: 支持按菜单ID管理订阅，便于追踪和管理
+5. **批量订阅**: 一次可以订阅多个 title
+6. **智能注册**: 首次订阅时自动向服务器注册，避免重复注册
+7. **自动取消注册**: 最后一个订阅取消时自动向服务器取消注册
+8. **自动重连**: 连接断开后自动重连，默认最多重连 10 次
+9. **心跳检测**: 每 30 秒发送一次心跳，保持连接活跃
+10. **多订阅支持**: 同一个 title 可以在不同菜单同时订阅
+11. **消息分发**: 根据 title 自动分发消息到对应的订阅者
+12. **类型安全**: 支持 TypeScript 泛型，提供完整的类型提示
+
+## 工作流程
+
+### 订阅流程
+
+1. 组件调用 `Wui.ws.subscribe('menu-id', ['TITLE1', 'TITLE2'], callback)`
+2. 记录菜单ID和title数组的映射关系
+3. 检查每个 title 是否是首次订阅
+4. 如果有首次订阅的 title，批量向服务器发送 `#ATITLE1/TITLE2`
+5. 将 callback 添加到每个 title 的订阅列表
+6. 返回取消订阅函数
+
+### 消息接收流程
+
+1. 服务器推送消息 `{"title": "TITLE", "data": {...}}`
+2. WebSocket 管理器解析消息
+3. 根据 title 查找所有订阅者
+4. 依次调用所有订阅者的 callback
+
+### 取消订阅流程
+
+1. 组件调用取消订阅函数或 `Wui.ws.unsubscribe('menu-id', callback)`
+2. 获取该菜单订阅的所有 title
+3. 从每个 title 的订阅列表中移除 callback
+4. 检查每个 title 是否还有其他订阅者
+5. 收集没有订阅者的 title，批量向服务器发送 `#DTITLE1/TITLE2`
+6. 移除菜单订阅记录
 
 ---
 
@@ -363,8 +449,8 @@ WebSocket 配置在项目根目录的 `init.json` 中设置：
 初始化后，可通过 `window.Wui` 访问：
 
 ```typescript
-window.Wui.initConfig; // 配置信息
-window.Wui.ws; // WebSocket 方法
+Wui.initConfig; // 配置信息
+Wui.ws; // WebSocket 方法
 ```
 
 ## 已集成页面

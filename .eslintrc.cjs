@@ -14,6 +14,7 @@ module.exports = {
     ecmaFeatures: {
       jsx: true,
     },
+    project: './tsconfig.json',
   },
   plugins: ['react-refresh', '@typescript-eslint', 'react-hooks'],
   rules: {
@@ -31,4 +32,4 @@ module.exports = {
       version: 'detect',
     },
   },
-}
+};

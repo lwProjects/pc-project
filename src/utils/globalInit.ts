@@ -2,7 +2,7 @@
  * @Author: liuwei2783 liuwei2783@erayt.com
  * @Date: 2026-02-10 11:47:23
  * @LastEditors: liuwei2783 liuwei2783@erayt.com
- * @LastEditTime: 2026-03-04 10:35:58
+ * @LastEditTime: 2026-03-06 09:52:26
  * @FilePath: \project\src\utils\globalInit.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -13,6 +13,7 @@
  */
 
 import initConfig from '../../init.json';
+import { unzip } from './business';
 import wsManager, { MessageCallback, WebSocketInfo } from './webSocket';
 
 /** 初始化配置接口 */
@@ -38,13 +39,18 @@ export interface WuiGlobal {
       callback: MessageCallback<T>
     ) => () => void;
     /** 取消订阅 */
-    unsubscribe: (menuId: string, callback?: MessageCallback<unknown>) => void;
+    unsubscribe: (menuId: string, titles: string[]) => void;
     /** 获取 WebSocket 信息 */
     getInfo: () => WebSocketInfo;
     /** 断开连接 */
     disconnect: () => void;
     /** 重新连接 */
     reconnect: () => void;
+  };
+  /** 工具函数 */
+  utils: {
+    /** 解压缩数据（base64 编码的压缩字符串） */
+    unzip: <T = unknown>(data: string) => T | false;
   };
 }
 
@@ -82,8 +88,8 @@ export function initGlobal(): void {
       ) => {
         return wsManager.subscribe<T>(menuId, titles, callback);
       },
-      unsubscribe: (menuId: string, callback?: MessageCallback<unknown>) => {
-        wsManager.unsubscribe(menuId, callback);
+      unsubscribe: (menuId: string, titles: string[]) => {
+        wsManager.unsubscribe(menuId, titles);
       },
       getInfo: () => {
         return wsManager.getInfo();
@@ -94,6 +100,9 @@ export function initGlobal(): void {
       reconnect: () => {
         wsManager.reconnect();
       },
+    },
+    utils: {
+      unzip: unzip,
     },
   };
 

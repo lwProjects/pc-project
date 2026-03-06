@@ -20,10 +20,16 @@ const Position = () => {
     const unsubscribe = Wui.ws.subscribe(
       'position-menu',
       ['POSIMM.FXSPOT.PAIR'],
-      (response: PositionResponse) => {
-        console.log('[Position] 收到头寸数据:', response);
+      message => {
+        console.log('[Position] 收到头寸数据:', message);
+        console.log('[Position] title:', message.title);
+        console.log(
+          '[Position] timestamp:',
+          new Date(message.timestamp).toLocaleString()
+        );
 
         // 更新数据源
+        const response = message.data as PositionResponse;
         if (response?.fxspotPositionList) {
           setDataSource(response.fxspotPositionList);
         }

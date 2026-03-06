@@ -20,6 +20,8 @@
  * const info = wsManager.getInfo();
  */
 
+import { unzip } from './business';
+
 /**
  * WebSocket 连接状态枚举
  *
@@ -39,13 +41,29 @@ export enum WSStatus {
 }
 
 /**
+ * WebSocket 消息包装接口
+ *
+ * @interface WebSocketMessage
+ * @property {string} title - 消息标题
+ * @property {T} data - 消息数据
+ * @property {number} timestamp - 消息接收时间戳（毫秒）
+ */
+export interface WebSocketMessage<T = unknown> {
+  title: string;
+  data: T;
+  timestamp: number;
+}
+
+/**
  * 消息回调函数类型
  *
  * @callback MessageCallback
- * @param {any} data - 服务器推送的消息数据
+ * @param {WebSocketMessage<T>} message - 包装后的消息对象
  * @returns {void}
  */
-export type MessageCallback<T = unknown> = (data: T) => void;
+export type MessageCallback<T = unknown> = (
+  message: WebSocketMessage<T>
+) => void;
 
 /**
  * WebSocket 配置接口
@@ -119,6 +137,9 @@ class WebSocketManager {
 
   /** 已向服务器注册的 title 集合 */
   private registeredTitles: Set<string> = new Set();
+
+  /** 待发送消息队列（连接未就绪时缓存） */
+  private pendingMessages: string[] = [];
 
   /**
    * 初始化 WebSocket 连接
@@ -207,6 +228,7 @@ class WebSocketManager {
    *
    * 当 WebSocket 连接成功建立时触发
    * 重置重连次数、清除错误信息、启动心跳
+   * 发送所有待发送的消息
    *
    * @private
    */
@@ -224,6 +246,9 @@ class WebSocketManager {
 
     // 启动心跳检测
     this.startHeartbeat();
+
+    // 发送所有待发送的消息
+    this.flushPendingMessages();
   }
 
   /**
@@ -233,31 +258,68 @@ class WebSocketManager {
    * 解析消息格式并分发到对应的订阅者
    *
    * 消息格式要求：
-   * {
-   *   "title": "FXSPOT.COM.ORDER",  // 消息标题（必填）
-   *   "data": { ... }                // 业务数据
-   * }
+   * title:压缩数据
+   * 例如：FXSPOT.COM.ORDER:eJyLrlZKLE...（pako 压缩的 base64 字符串）
    *
    * @private
    * @param {MessageEvent} event - WebSocket 消息事件
    */
   private handleMessage(event: MessageEvent): void {
     try {
-      // 解析 JSON 消息
-      const message = JSON.parse(event.data);
-      const { title, data } = message;
+      const message = event.data as string;
 
-      // 检查 title 字段
-      if (!title) {
-        console.warn('[WebSocket] 消息缺少 title 字段:', message);
+      // 检查消息格式：必须包含冒号分隔符
+      if (typeof message !== 'string' || !message.includes(':')) {
+        console.warn(
+          '[WebSocket] 无效消息格式，期望 "title:压缩数据":',
+          message
+        );
         return;
+      }
+
+      // 分割 title 和压缩数据
+      const colonIndex = message.indexOf(':');
+      const title = message.substring(0, colonIndex);
+      const compressedData = message.substring(colonIndex + 1);
+
+      // 检查 title 是否为空
+      if (!title) {
+        console.warn('[WebSocket] 消息缺少 title:', message);
+        return;
+      }
+
+      // 检查数据是否为空
+      if (!compressedData) {
+        console.warn('[WebSocket] 消息缺少数据:', message);
+        return;
+      }
+
+      // 尝试解析数据（支持压缩数据和明文 JSON）
+      let data: unknown;
+
+      // 先尝试解压缩
+      const unzipResult = unzip(compressedData);
+
+      if (unzipResult !== false) {
+        // 解压成功，使用解压后的数据
+        data = unzipResult;
+      } else {
+        // 解压失败，尝试作为明文 JSON 解析
+        try {
+          data = JSON.parse(compressedData);
+          console.log('[WebSocket] 使用明文数据, title:', title);
+        } catch {
+          // 既不是压缩数据也不是 JSON，直接使用原始数据
+          data = compressedData;
+          console.log('[WebSocket] 使用原始数据, title:', title);
+        }
       }
 
       // 分发消息到对应的订阅者
       this.dispatch(title, data);
     } catch (error) {
       // 消息解析失败
-      console.error('[WebSocket] 消息解析失败:', error, event.data);
+      console.error('[WebSocket] 消息处理失败:', error, event.data);
     }
   }
 
@@ -356,12 +418,12 @@ class WebSocketManager {
     this.stopHeartbeat();
 
     // 启动新的心跳定时器
-    this.heartbeatTimer = setInterval(() => {
-      // 只在连接打开时发送心跳
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send('ping');
-      }
-    }, this.config.heartbeatInterval);
+    // this.heartbeatTimer = setInterval(() => {
+    //   // 只在连接打开时发送心跳
+    //   if (this.ws?.readyState === WebSocket.OPEN) {
+    //     this.send('ping');
+    //   }
+    // }, this.config.heartbeatInterval);
   }
 
   /**
@@ -382,7 +444,7 @@ class WebSocketManager {
    * 发送消息（私有方法）
    *
    * 向服务器发送消息
-   * 只在连接打开状态下才能发送
+   * 如果连接未就绪，消息会被加入待发送队列
    *
    * @private
    * @param {string} data - 要发送的数据字符串
@@ -394,7 +456,31 @@ class WebSocketManager {
       this.ws.send(data);
       console.log(`[WebSocket] 发送消息: ${data}`);
     } else {
-      console.warn('[WebSocket] 连接未就绪，无法发送消息');
+      // 连接未就绪，加入待发送队列
+      console.warn(`[WebSocket] 连接未就绪，消息加入队列: ${data}`);
+      this.pendingMessages.push(data);
+    }
+  }
+
+  /**
+   * 发送所有待发送的消息（私有方法）
+   *
+   * 当连接成功建立后，发送队列中的所有消息
+   *
+   * @private
+   */
+  private flushPendingMessages(): void {
+    if (this.pendingMessages.length === 0) return;
+
+    console.log(`[WebSocket] 发送 ${this.pendingMessages.length} 条待发送消息`);
+
+    // 发送所有待发送消息
+    while (this.pendingMessages.length > 0) {
+      const message = this.pendingMessages.shift();
+      if (message && this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(message);
+        console.log(`[WebSocket] 发送队列消息: ${message}`);
+      }
     }
   }
 
@@ -418,7 +504,7 @@ class WebSocketManager {
     }
 
     // 构建注册消息：#Atitle1/title2/...
-    const message = `#A${newTitles.join('/')}`;
+    const message = `#A:${newTitles.join('/')}`;
     this.send(message);
 
     // 记录已注册的 title
@@ -449,7 +535,7 @@ class WebSocketManager {
     }
 
     // 构建取消注册消息：#Dtitle1/title2/...
-    const message = `#D${registeredTitles.join('/')}`;
+    const message = `#D:${registeredTitles.join('/')}`;
     this.send(message);
 
     // 从已注册集合中移除
@@ -488,8 +574,12 @@ class WebSocketManager {
     // 遍历对象，执行所有回调函数
     Object.entries(menuCallbacks).forEach(([menuId, item]) => {
       try {
-        // 执行回调，传入消息数据
-        item.callback(data);
+        // 执行回调，传入包装后的消息数据
+        item.callback({
+          title,
+          data,
+          timestamp: Date.now(),
+        });
       } catch (error) {
         // 捕获回调执行错误，避免影响其他订阅者
         console.error(

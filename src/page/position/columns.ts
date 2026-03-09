@@ -47,13 +47,13 @@ export const getPositionColumns = (intl: IntlShape): ArtColumn[] => [
     width: 120,
   },
   {
-    code: 'marketValue',
-    name: intl.formatMessage({ id: 'position.marketValue' }),
+    code: 'marketRate',
+    name: intl.formatMessage({ id: 'position.marketRate' }),
     width: 120,
   },
   {
-    code: 'unrealizedPL',
-    name: intl.formatMessage({ id: 'position.unrealizedPL' }),
+    code: 'costRate',
+    name: intl.formatMessage({ id: 'position.costRate' }),
     width: 120,
   },
   {

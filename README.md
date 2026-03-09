@@ -115,8 +115,8 @@ unsubscribe();
 | currencyPair | 货币对        | dealCurrency | 交易货币   |
 | dealPort     | 交易敞口      | dayDealPort  | 日交易敞口 |
 | dealPortUSD  | 交易敞口(USD) | realizedPL   | 已实现盈亏 |
-| totalPL      | 总盈亏        | marketValue  | 市值       |
-| unrealizedPL | 未实现盈亏    | longFrozen   | 多头冻结   |
+| totalPL      | 总盈亏        | marketRate   | 市场汇率   |
+| costRate     | 成本汇率      | longFrozen   | 多头冻结   |
 | shortFrozen  | 空头冻结      | shortVolume  | 空头数量   |
 | longVolume   | 多头数量      | floatingPL   | 浮动盈亏   |
 | updateTime   | 更新时间      | -            | -          |

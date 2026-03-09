@@ -1,8 +1,9 @@
+import BaseTable, { BaseTableRef } from '@/component/Table/BaseTable';
+import { useLatestRef } from '@/utils';
 import Splitter, { SplitDirection } from '@devbookhq/splitter';
 import { Button, Space } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import BaseTable, { BaseTableRef } from '../../component/Table/BaseTable';
 import { getPositionColumns } from './columns';
 import './position.less';
 import './splitter.less';
@@ -11,40 +12,13 @@ import type { PositionData } from './types';
 const Position = () => {
   const tableRef = useRef<BaseTableRef>(null);
   const intl = useIntl();
-  const [dataSource, setDataSource] = useState<any[]>([]);
+  const [dataSource, setDataSource] = useState<PositionData[]>([]);
+  const dataSourceRef = useLatestRef(dataSource);
 
   const columns = useMemo(() => getPositionColumns(intl), [intl]);
 
-  // 订阅头寸数据（使用全局 Wui.ws）
-  useEffect(() => {
-    const unsubscribe = Wui.ws.subscribe<PositionData[]>(
-      'position-menu',
-      ['POSIMM.FXSPOT.PAIR'],
-      message => {
-        console.log('[Position] 收到头寸数据:', message);
-        console.log('[Position] title:', message.title);
-        console.log(
-          '[Position] timestamp:',
-          new Date(message.timestamp).toLocaleString()
-        );
-
-        // 更新数据源
-        // const response = message.data as PositionResponse;
-        if (message?.data?.length) {
-          consta;
-          // setDataSource(message.data);
-        }
-      }
-    );
-
-    // 组件卸载时取消订阅
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
   // 模拟数据（根据 columns 字段生成）
-  const mockDataSource = useMemo(() => {
+  const mockDataSource: PositionData[] = useMemo(() => {
     // 10个货币对
     const currencyPairs = [
       'USD/AUD',
@@ -72,8 +46,8 @@ const Position = () => {
         dealPortUSD: 0, // 交易敞口USD
         realizedPL: 0, // 已实现盈亏
         totalPL: 0, // 总盈亏
-        marketValue: 0, // 市值
-        unrealizedPL: 0, // 未实现盈亏
+        marketRate: 0, // 市值
+        costRate: 0, // 未实现盈亏
         longFrozen: 0, // 多头冻结
         shortFrozen: 0, // 空头冻结
         shortVolume: 0, // 空头数量
@@ -85,6 +59,44 @@ const Position = () => {
         book: `BOOK${i + 1}`,
       };
     });
+  }, []);
+
+  // 订阅头寸数据（使用全局 Wui.ws）
+  useEffect(() => {
+    const unsubscribe = Wui.ws.subscribe<PositionData[]>(
+      'position-menu',
+      ['POSIMM.FXSPOT.PAIR'],
+      message => {
+        console.log('[Position] 收到头寸数据:', message);
+        console.log('[Position] title:', message.title);
+        console.log(
+          '[Position] timestamp:',
+          new Date(message.timestamp).toLocaleString()
+        );
+
+        // 更新数据源
+        const response = message.data;
+        if (response?.length) {
+          // 合并更新数据
+          const current = dataSourceRef.current || [];
+          const updated = current.map(x => {
+            const find = response.find(
+              item => item.currencyPair === x.currencyPair
+            );
+            return find ? { ...x, ...find } : x;
+          });
+          setDataSource(updated);
+        }
+      }
+    );
+
+    setDataSource(mockDataSource);
+
+    // 组件卸载时取消订阅
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

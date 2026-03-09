@@ -5,54 +5,36 @@
 export interface PositionData {
   /** 组合 */
   book: string;
-  /** 买入金额 */
-  buyAmount: number;
-  /** 货币代码 */
-  ccy: string;
-  /** 合约代码 */
-  contractCode: string;
-  /** 成本汇率 */
-  costRate: number;
-  /** 敞口 */
-  exposure: number;
-  /** 敞口小数位数 */
-  exposureDecimal: number;
-  /** 浮动盈亏 */
-  floatProfit: number;
-  /** 账户 */
-  folder: string;
-  /** 最新汇率 */
-  lastRate: number;
-  /** 多头冻结金额 */
-  longFreezeAmount: number;
-  /** 月度盈亏 */
-  monthProfit: number;
   /** 货币对 */
-  pair: string;
-  /** 盈亏 */
-  profit: number;
-  /** 卖出金额 */
-  sellAmount: number;
-  /** 结算货币 */
-  settleCcy: string;
-  /** 结算货币敞口 */
-  settleCcyExposure: number;
-  /** 结算小数位数 */
-  settleDecimal: number;
-  /** 结算USD汇率 */
-  settleUSDRate: number;
-  /** 空头冻结金额 */
-  shortFreezeAmount: number;
-  /** 今日敞口 */
-  todayExposure: number;
-  /** 今日盈亏 */
-  todayProfit: number;
-  /** 触发金额 */
-  triggerAmount: number;
+  currencyPair: string;
+  /** 交易货币 */
+  dealCurrency: string;
+  /** 交易敞口 */
+  dealPort: number;
+  /** 日交易敞口 */
+  dayDealPort: number;
+  /** 交易敞口USD */
+  dealPortUSD: number;
+  /** 已实现盈亏 */
+  realizedPL: number;
+  /** 总盈亏 */
+  totalPL: number;
+  /** 市值 */
+  marketRate: number;
+  /** 未实现盈亏 */
+  costRate: number;
+  /** 多头冻结 */
+  longFrozen: number;
+  /** 空头冻结 */
+  shortFrozen: number;
+  /** 空头数量 */
+  shortVolume: number;
+  /** 多头数量 */
+  longVolume: number;
+  /** 浮动盈亏 */
+  floatingPL: number;
   /** 更新时间 */
   updateTime: string;
-  /** 年度盈亏 */
-  yearProfit: number;
 }
 
 /**

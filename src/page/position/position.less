@@ -28,6 +28,8 @@
 
 // 头寸监控面板
 .position-table-panel {
+  box-sizing: border-box;
+  height: 100%;
   background: @bg-secondary;
   border-radius: 4px;
   padding: 16px;
@@ -48,7 +50,7 @@
   }
 
   .table-wrapper {
-    flex: 1;
+    height: calc(100% - 28px);
     overflow: hidden;
   }
 }

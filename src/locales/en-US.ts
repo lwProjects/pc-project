@@ -14,6 +14,17 @@ export default {
   'app.modal.cancelText': 'Cancel',
 
   // Position Monitoring
+  'position.title': 'Position Monitoring',
+  'position.leftArea': 'Left Area',
+  'position.middleArea': 'Middle Area',
+  'position.bottomArea': 'Bottom Area',
+  'position.rightArea': 'Right Area',
+  'position.noData': 'No Data',
+  'position.selectAll': 'Select All',
+  'position.clearSelection': 'Clear',
+  'position.getSelected': 'Get Selected',
+
+  // Position Columns
   'position.currencyPair': 'Currency Pair',
   'position.dealCurrency': 'Deal Currency',
   'position.dealPort': 'Deal Port',

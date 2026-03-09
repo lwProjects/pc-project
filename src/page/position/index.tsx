@@ -6,18 +6,18 @@ import BaseTable, { BaseTableRef } from '../../component/Table/BaseTable';
 import { getPositionColumns } from './columns';
 import './position.less';
 import './splitter.less';
-import type { PositionData, PositionResponse } from './types';
+import type { PositionData } from './types';
 
 const Position = () => {
   const tableRef = useRef<BaseTableRef>(null);
   const intl = useIntl();
-  const [dataSource, setDataSource] = useState<PositionData[]>([]);
+  const [dataSource, setDataSource] = useState<any[]>([]);
 
   const columns = useMemo(() => getPositionColumns(intl), [intl]);
 
   // 订阅头寸数据（使用全局 Wui.ws）
   useEffect(() => {
-    const unsubscribe = Wui.ws.subscribe(
+    const unsubscribe = Wui.ws.subscribe<PositionData[]>(
       'position-menu',
       ['POSIMM.FXSPOT.PAIR'],
       message => {
@@ -29,9 +29,10 @@ const Position = () => {
         );
 
         // 更新数据源
-        const response = message.data as PositionResponse;
-        if (response?.fxspotPositionList) {
-          setDataSource(response.fxspotPositionList);
+        // const response = message.data as PositionResponse;
+        if (message?.data?.length) {
+          consta;
+          // setDataSource(message.data);
         }
       }
     );
@@ -42,50 +43,55 @@ const Position = () => {
     };
   }, []);
 
-  // 模拟数据（用于测试，实际数据来自 WebSocket）
-  const mockDataSource: PositionData[] = useMemo(
-    () =>
-      Array.from({ length: 50 }, (_, i) => ({
+  // 模拟数据（根据 columns 字段生成）
+  const mockDataSource = useMemo(() => {
+    // 10个货币对
+    const currencyPairs = [
+      'USD/AUD',
+      'EUR/USD',
+      'GBP/USD',
+      'USD/JPY',
+      'AUD/USD',
+      'EUR/AUD',
+      'GBP/AUD',
+      'USD/CNY',
+      'EUR/GBP',
+      'AUD/JPY',
+    ];
+
+    return currencyPairs.map((pair, i) => {
+      // 提取交易货币（斜杠前的货币）
+      const dealCurrency = pair.split('/')[0];
+
+      return {
+        // columns 中定义的字段
+        currencyPair: pair, // 货币对
+        dealCurrency: dealCurrency, // 交易货币
+        dealPort: 0, // 交易敞口
+        dayDealPort: 0, // 日交易敞口
+        dealPortUSD: 0, // 交易敞口USD
+        realizedPL: 0, // 已实现盈亏
+        totalPL: 0, // 总盈亏
+        marketValue: 0, // 市值
+        unrealizedPL: 0, // 未实现盈亏
+        longFrozen: 0, // 多头冻结
+        shortFrozen: 0, // 空头冻结
+        shortVolume: 0, // 空头数量
+        longVolume: 0, // 多头数量
+        floatingPL: 0, // 浮动盈亏
+        updateTime: new Date().toISOString().replace('T', ' ').substring(0, 19), // 更新时间
+
+        // 保留原始字段作为 primaryKey
         book: `BOOK${i + 1}`,
-        buyAmount: Math.floor(Math.random() * 1000000),
-        ccy: ['AUD', 'EUR', 'GBP', 'JPY'][i % 4],
-        contractCode: `${['AUD', 'EUR', 'GBP', 'JPY'][i % 4]}USDSP`,
-        costRate: parseFloat((1 + Math.random()).toFixed(4)),
-        exposure: Math.floor(Math.random() * 100),
-        exposureDecimal: 2,
-        floatProfit: parseFloat((Math.random() * 1000 - 500).toFixed(2)),
-        folder: `FOLDER${i + 1}`,
-        lastRate: parseFloat((1 + Math.random()).toFixed(4)),
-        longFreezeAmount: Math.floor(Math.random() * 10000),
-        monthProfit: parseFloat((Math.random() * 5000 - 2500).toFixed(2)),
-        pair: ['AUDUSD', 'EURUSD', 'GBPUSD', 'USDJPY'][i % 4],
-        profit: parseFloat((Math.random() * 10000 - 5000).toFixed(2)),
-        sellAmount: Math.floor(Math.random() * 1000000),
-        settleCcy: 'USD',
-        settleCcyExposure: parseFloat((Math.random() * 100 - 50).toFixed(2)),
-        settleDecimal: 2,
-        settleUSDRate: parseFloat((1 + Math.random() * 0.1).toFixed(4)),
-        shortFreezeAmount: Math.floor(Math.random() * 10000),
-        todayExposure: Math.floor(Math.random() * 50),
-        todayProfit: parseFloat((Math.random() * 1000 - 500).toFixed(2)),
-        triggerAmount: Math.floor(Math.random() * 5000),
-        updateTime: new Date(Date.now() - Math.random() * 3600000)
-          .toISOString()
-          .replace('T', ' ')
-          .substring(0, 19),
-        yearProfit: parseFloat((Math.random() * 50000 - 25000).toFixed(2)),
-      })),
-    []
-  );
+      };
+    });
+  }, []);
 
   return (
     <div className="position-container">
       <Splitter initialSizes={[15, 70, 15]}>
         {/* 左侧区域 */}
-        <div className="panel">
-          <h3>左侧区域</h3>
-          <div>暂无</div>
-        </div>
+        <div className="panel"></div>
 
         {/* 中间区域 */}
         <Splitter
@@ -95,19 +101,19 @@ const Position = () => {
           {/* 头寸监控 */}
           <div className="position-table-panel">
             <div className="panel-header">
-              <h3>头寸监控</h3>
+              <h3>{intl.formatMessage({ id: 'position.title' })}</h3>
               <Space>
                 <Button
                   size="small"
                   onClick={() => tableRef.current?.selectAll()}
                 >
-                  全选
+                  {intl.formatMessage({ id: 'position.selectAll' })}
                 </Button>
                 <Button
                   size="small"
                   onClick={() => tableRef.current?.clearSelection()}
                 >
-                  清空
+                  {intl.formatMessage({ id: 'position.clearSelection' })}
                 </Button>
                 <Button
                   size="small"
@@ -118,7 +124,7 @@ const Position = () => {
                     console.log('选中的 rows:', rows);
                   }}
                 >
-                  获取选中
+                  {intl.formatMessage({ id: 'position.getSelected' })}
                 </Button>
               </Space>
             </div>
@@ -139,23 +145,14 @@ const Position = () => {
           </div>
 
           {/* 中间区域 */}
-          <div className="panel">
-            <h3>中间区域</h3>
-            <div>暂无</div>
-          </div>
+          <div className="panel"></div>
 
           {/* 下部区域 */}
-          <div className="panel">
-            <h3>下部区域</h3>
-            <div>暂无</div>
-          </div>
+          <div className="panel"></div>
         </Splitter>
 
         {/* 右侧区域 */}
-        <div className="panel">
-          <h3>右侧区域</h3>
-          <div>暂无</div>
-        </div>
+        <div className="panel"></div>
       </Splitter>
     </div>
   );

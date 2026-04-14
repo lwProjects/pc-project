@@ -95,27 +95,22 @@ smtputf8_enable = no
 #
 # SSL key, certificate, CA
 #
-#smtpd_tls_key_file = /etc/ssl/private/iRedMail.key
-#smtpd_tls_cert_file = /etc/ssl/certs/iRedMail.crt
-smtpd_tls_cert_file = /etc/letsencrypt/live/aenlly.uno/fullchain.pem
-smtpd_tls_key_file  = /etc/letsencrypt/live/aenlly.uno/privkey.pem
+smtpd_tls_key_file = /etc/ssl/private/iRedMail.key
+smtpd_tls_cert_file = /etc/ssl/certs/iRedMail.crt
 smtpd_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 smtpd_tls_CApath = /etc/ssl/certs
 
 #
 # Disable SSLv2, SSLv3, TLSv1, TLSv1.1.
 #
-smtpd_tls_protocols =  !SSLv2 !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2
-smtpd_tls_mandatory_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2
+smtpd_tls_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1
+smtpd_tls_mandatory_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1
 
-smtp_tls_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2
-smtp_tls_mandatory_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2
+smtp_tls_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1
+smtp_tls_mandatory_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1
 
-lmtp_tls_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2
-lmtp_tls_mandatory_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2
-
-smtpd_tls_ciphers = medium
-smtpd_tls_mandatory_ciphers = medium
+lmtp_tls_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1
+lmtp_tls_mandatory_protocols = !SSLv2 !SSLv3 !TLSv1 !TLSv1.1
 
 #
 # Fix 'The Logjam Attack'.
@@ -136,8 +131,6 @@ smtpd_tls_loglevel = 1
 # Opportunistic TLS: announce STARTTLS support to remote SMTP clients, but do
 # not require that clients use TLS encryption.
 smtpd_tls_security_level = may
-# 修改点
-#smtpd_tls_security_level=none
 
 # Produce `Received:` message headers that include information about the
 # protocol and cipher used, as well as the remote SMTP client CommonName and
@@ -154,8 +147,6 @@ smtpd_tls_security_level = may
 #   - http://www.postfix.org/TLS_README.html#client_tls_may
 #   - http://www.postfix.org/postconf.5.html#smtp_tls_security_level
 smtp_tls_security_level = may
-#修改点
-#smtp_tls_security_level=none
 
 # Use the same CA file as smtpd.
 smtp_tls_CApath = /etc/ssl/certs
@@ -184,17 +175,13 @@ body_checks = pcre:/etc/postfix/body_checks.pcre
 smtpd_command_filter = pcre:/etc/postfix/command_filter.pcre
 
 # HELO restriction
-#smtpd_helo_required = yes
-#修改点
+smtpd_helo_required = yes
 smtpd_helo_restrictions =
     permit_mynetworks
     permit_sasl_authenticated
-# smtpd_helo_restrictions =
-#    permit_mynetworks
-#    permit_sasl_authenticated
-#    check_helo_access pcre:/etc/postfix/helo_access.pcre
-#    reject_non_fqdn_helo_hostname
-#    reject_unknown_helo_hostname
+    check_helo_access pcre:/etc/postfix/helo_access.pcre
+    reject_non_fqdn_helo_hostname
+    reject_unknown_helo_hostname
 
 # Sender restrictions
 smtpd_sender_restrictions =
@@ -206,20 +193,14 @@ smtpd_sender_restrictions =
     reject_unknown_sender_domain
 
 # Recipient restrictions
-#smtpd_recipient_restrictions =
-#    reject_non_fqdn_recipient
-#    reject_unlisted_recipient
-#    check_policy_service inet:127.0.0.1:7777
-#    permit_mynetworks
-#    permit_sasl_authenticated
-#    reject_unauth_destination
-#    check_policy_service inet:127.0.0.1:12340
 smtpd_recipient_restrictions =
-    reject_non_fqdn_recipient,
-    reject_unlisted_recipient,
-    permit_mynetworks,
-    permit_sasl_authenticated,
+    reject_non_fqdn_recipient
+    reject_unlisted_recipient
+    check_policy_service inet:127.0.0.1:7777
+    permit_mynetworks
+    permit_sasl_authenticated
     reject_unauth_destination
+    check_policy_service inet:127.0.0.1:12340
 
 # END-OF-MESSAGE restrictions
 smtpd_end_of_data_restrictions =
@@ -230,7 +211,7 @@ smtpd_data_restrictions = reject_unauth_pipelining
 
 # Mitigate SMTP smuggling attack.
 # https://www.postfix.org/smtp-smuggling.html
-#smtpd_discard_ehlo_keywords = chunking
+smtpd_discard_ehlo_keywords = chunking
 
 # SRS (Sender Rewriting Scheme) support
 #sender_canonical_maps = tcp:127.0.0.1:7778
@@ -247,7 +228,7 @@ enable_original_recipient = no
 virtual_minimum_uid = 2000
 virtual_uid_maps = static:2000
 virtual_gid_maps = static:2000
-virtual_mailbox_base = /opt/vmail
+virtual_mailbox_base = /var/vmail
 
 # Do not set virtual_alias_domains.
 virtual_alias_domains =
@@ -262,9 +243,9 @@ virtual_alias_domains =
 #smtpd_tls_auth_only = yes
 
 # hostname
-myhostname = mail.aenlly.uno
-myorigin = aenlly.uno
-mydomain = aenlly.uno
+myhostname = mail.capybara-w.top
+myorigin = mail.capybara-w.top
+mydomain = mail.capybara-w.top
 
 # trusted SMTP clients which are allowed to relay mail through Postfix.
 #
@@ -389,25 +370,3 @@ content_filter = smtp-amavis:[127.0.0.1]:10024
 
 # Concurrency per recipient limit.
 smtp-amavis_destination_recipient_limit = 1
-
-# === 为解决外网连接问题添加的配置 ===
-
-
-# 2. 增加超时时间
-smtp_helo_timeout = 300s
-smtp_starttls_timeout = 300s
-
-# 3. 禁用TLS会话恢复（某些网络问题）
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-
-
-# 5. 设置队列重试间隔（缩短延迟）
-maximal_queue_lifetime = 12h
-minimal_backoff_time = 30m
-maximal_backoff_time = 6h
-
-
-# 不要再加 MEDIUM/+RC4 这种历史包袱
-smtpd_tls_ciphers = medium
-smtpd_tls_exclude_ciphers = aNULL, eNULL, EXPORT, DES, 3DES, RC4, MD5, PSK, SRP, DSS
-
